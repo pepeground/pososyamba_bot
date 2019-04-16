@@ -7,6 +7,8 @@ RUN apk update && apk upgrade && \
 
 COPY . ./
 
+RUN go get
+
 RUN go build pososyamba_bot.go
 
 CMD [ "./pososyamba_bot" ]
