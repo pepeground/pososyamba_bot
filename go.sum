@@ -1,4 +1,12 @@
+github.com/brunopita/go-common v0.0.0-20181128165638-9bc7e4da8eb3 h1:yC1l3hAuZPd87mc1zuG4gwGadWYFRuPRBAQyanYn3sM=
+github.com/brunopita/go-common v0.0.0-20181128165638-9bc7e4da8eb3/go.mod h1:9qEbFIlioD66YSNVimXw5df5xbrMZ0zWKgrtFY1Y07U=
+github.com/brunopita/influxdb-client v0.0.0-20190110191440-53e3b449c706 h1:vtwr6ypskCXpDBrj6RPX6jyAm9GLuKznGLY1kfJgCAM=
+github.com/brunopita/influxdb-client v0.0.0-20190110191440-53e3b449c706/go.mod h1:uTfoEd9sNukK19EsftA7R3gnLiBwYAGNi73kre0U4IY=
 github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible h1:2cauKuaELYAEARXRkq2LrJ0yDDv1rW7+wrTEdVL3uaU=
 github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible/go.mod h1:qf9acutJ8cwBUhm1bqgz6Bei9/C/c93FPDljKWwsOgM=
+github.com/influxdata/influxdb v1.7.5 h1:qEgSrvIRxsIqNQTTeI1Bv6MPh8sOODEsL3GTi9nqtTk=
+github.com/influxdata/influxdb v1.7.5/go.mod h1:qZna6X/4elxqT3yI9iZYdZrWWdeFOOprn86kgg4+IzY=
+github.com/influxdata/influxdb1-client v0.0.0-20190402204710-8ff2fc3824fc h1:KpMgaYJRieDkHZJWY3LMafvtqS/U8xX6+lUN+OKpl/Y=
+github.com/influxdata/influxdb1-client v0.0.0-20190402204710-8ff2fc3824fc/go.mod h1:qj24IKcXYK6Iy9ceXlo3Tc+vtHo9lIhSX5JddghvEPo=
 github.com/technoweenie/multipartstreamer v1.0.1 h1:XRztA5MXiR1TIRHxH2uNxXxaIkKQDeX7m2XsSOlQEnM=
 github.com/technoweenie/multipartstreamer v1.0.1/go.mod h1:jNVxdtShOxzAsukZwTSw6MDx5eUJoiEBsSvzDU9uzog=

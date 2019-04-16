@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/influxdata/influxdb1-client/v2"
 	"log"
 	"math/rand"
 	"os"
@@ -38,6 +39,8 @@ func main() {
 	updates, err := bot.GetUpdatesChan(u)
 
 	for update := range updates {
+		log.Printf("%+v\n", update)
+
 		if update.InlineQuery != nil {
 
 			article := tgbotapi.NewInlineQueryResultArticle(
@@ -51,7 +54,15 @@ func main() {
 				Results:       []interface{}{article},
 			}
 
-			if _, err := bot.AnswerInlineQuery(inlineConf); err != nil {
+			query := update.InlineQuery
+
+			go sendToInflux(query.From.UserName, query.From.ID, 0, "", "inline")
+
+			_, err := bot.AnswerInlineQuery(inlineConf)
+
+			log.Println(update)
+
+			if err != nil {
 				log.Println(err)
 			}
 			continue
@@ -65,6 +76,8 @@ func main() {
 			continue
 		}
 
+		message := update.Message
+
 		// Create a new MessageConfig. We don't have text yet,
 		// so we should leave it empty.
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
@@ -76,6 +89,8 @@ func main() {
 		case "pososyamba":
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID, "")
 			msg.Text = preparePhrases[rand.Intn(len(preparePhrases))]
+
+			go sendToInflux(message.From.UserName, message.From.ID, message.Chat.ID, message.Chat.Title, "message")
 
 			sendMessage(msg, bot)
 
@@ -100,4 +115,40 @@ func buildPososyamba() string {
 	}
 
 	return strings.Join(text, "\r\n\n")
+}
+
+func sendToInflux(username string, userID int, chatID int64, chatTitle, messageType string) {
+	c, err := client.NewHTTPClient(client.HTTPConfig{
+		Addr:     os.Getenv("INFLUX_URL"),
+		Username: os.Getenv("INFLUX_USERNAME"),
+		Password: os.Getenv("INFLUX_PASSWORD"),
+	})
+	if err != nil {
+		log.Printf("%+v\n", "Error creating InfluxDB Client: "+err.Error())
+	}
+	defer c.Close()
+
+	// Create a new point batch
+	bp, _ := client.NewBatchPoints(client.BatchPointsConfig{
+		Database: "web_services",
+	})
+
+	// Create a point and add to batch
+	tags := map[string]string{"telegram": "pososyamba"}
+	fields := map[string]interface{}{
+		"username":    username,
+		"user_id":     userID,
+		"chat_title":  chatTitle,
+		"chat_id":     chatID,
+		"messageType": messageType,
+	}
+
+	pt, err := client.NewPoint("pososyamba_usage", tags, fields, time.Now())
+	if err != nil {
+		log.Println("Error: ", err.Error())
+	}
+	bp.AddPoint(pt)
+
+	// Write the batch
+	c.Write(bp)
 }
