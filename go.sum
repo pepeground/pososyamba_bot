@@ -2,6 +2,8 @@ github.com/brunopita/go-common v0.0.0-20181128165638-9bc7e4da8eb3 h1:yC1l3hAuZPd
 github.com/brunopita/go-common v0.0.0-20181128165638-9bc7e4da8eb3/go.mod h1:9qEbFIlioD66YSNVimXw5df5xbrMZ0zWKgrtFY1Y07U=
 github.com/brunopita/influxdb-client v0.0.0-20190110191440-53e3b449c706 h1:vtwr6ypskCXpDBrj6RPX6jyAm9GLuKznGLY1kfJgCAM=
 github.com/brunopita/influxdb-client v0.0.0-20190110191440-53e3b449c706/go.mod h1:uTfoEd9sNukK19EsftA7R3gnLiBwYAGNi73kre0U4IY=
+github.com/go-redis/redis v6.15.2+incompatible h1:9SpNVG76gr6InJGxoZ6IuuxaCOQwDAhzyXg+Bs+0Sb4=
+github.com/go-redis/redis v6.15.2+incompatible/go.mod h1:NAIEuMOZ/fxfXJIrKDQDz8wamY7mA7PouImQ2Jvg6kA=
 github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible h1:2cauKuaELYAEARXRkq2LrJ0yDDv1rW7+wrTEdVL3uaU=
 github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible/go.mod h1:qf9acutJ8cwBUhm1bqgz6Bei9/C/c93FPDljKWwsOgM=
 github.com/influxdata/influxdb v1.7.5 h1:qEgSrvIRxsIqNQTTeI1Bv6MPh8sOODEsL3GTi9nqtTk=

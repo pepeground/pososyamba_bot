@@ -1,0 +1,29 @@
+version: '3.7'
+
+services:
+  bot:
+    build:
+      context: .
+    command: /application/pososyamba_bot
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    tty: true
+    stdin_open: true
+    volumes:
+      - gopath_cache:$GOPATH
+      - .:/application:cached
+
+  redis:
+    image: redis:5-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+
+
+
+
+volumes:
+  gopath_cache:
+  redis_data:
