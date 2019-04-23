@@ -32,6 +32,11 @@ var gayName = []string{
 	"pidor",
 	"mraz",
 	"petushok",
+	"cocksucker",
+	"analsucker",
+	"pussylicker",
+	"weabo",
+	"cock",
 }
 
 var gayAdjective = []string{
@@ -39,6 +44,8 @@ var gayAdjective = []string{
 	"fat",
 	"cool",
 	"sweety",
+	"furryloving",
+	"cuckholdy",
 }
 
 var redisdb = redis.NewClient(&redis.Options{
