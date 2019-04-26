@@ -149,7 +149,12 @@ func main() {
 			var err error
 
 			if forwardedMessage.ReplyToMessage != nil {
-				username = forwardedMessage.ReplyToMessage.From.UserName
+				if forwardedMessage.ReplyToMessage.From.UserName == "" {
+					username = forwardedMessage.ReplyToMessage.From.String()
+				} else {
+					username = "@" + forwardedMessage.ReplyToMessage.From.UserName
+				}
+
 				clientID = forwardedMessage.ReplyToMessage.From.ID
 				gayID, err = redisdb.Get(strconv.Itoa(clientID)).Result()
 
@@ -157,7 +162,12 @@ func main() {
 				msg.ReplyToMessageID = forwardedMessage.ReplyToMessage.MessageID
 				log.Println(gayID)
 			} else {
-				username = forwardedMessage.From.UserName
+				if forwardedMessage.From.UserName == "" {
+					username = forwardedMessage.From.String()
+				} else {
+					username = "@" + forwardedMessage.From.UserName
+				}
+
 				clientID = forwardedMessage.From.ID
 				gayID, err = redisdb.Get(strconv.Itoa(clientID)).Result()
 				log.Println(clientID)
@@ -176,7 +186,7 @@ func main() {
 				msg.Text = gayID
 			}
 
-			msg.Text = "@" + username + " has gay_id: #" + msg.Text
+			msg.Text = username + " has gay_id: #" + msg.Text
 
 			go sendToInflux(message.From.UserName, message.From.ID, message.Chat.ID, message.Chat.Title, "message", "gay_id")
 
