@@ -191,8 +191,10 @@ func main() {
 }
 
 func generateGayID() string {
-	return strings.Join(
-		[]string{gayAdjective[rand.Intn(len(gayAdjective))], gayName[rand.Intn(len(gayName))], fmt.Sprintf("%v", rand.Intn(10000))}, "_",
+	return fmt.Sprintf("%s_%s_%v",
+		gayAdjective[rand.Intn(len(gayAdjective))],
+		gayName[rand.Intn(len(gayName))],
+		rand.Intn(10000),
 	)
 }
 
