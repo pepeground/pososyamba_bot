@@ -98,7 +98,7 @@ func main() {
 
 			query := update.InlineQuery
 
-			go sendToInflux(query.From.UserName, query.From.ID, 0, "", "inline", "inline")
+			go sendToInflux(query.From.String(), query.From.ID, 0, "", "inline", "inline")
 
 			_, err := bot.AnswerInlineQuery(inlineConf)
 
@@ -132,7 +132,7 @@ func main() {
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID, "")
 			msg.Text = preparePhrases[rand.Intn(len(preparePhrases))]
 
-			go sendToInflux(message.From.UserName, message.From.ID, message.Chat.ID, message.Chat.Title, "message", "pososyamba")
+			go sendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "pososyamba")
 
 			sendMessage(msg, bot)
 
@@ -149,12 +149,7 @@ func main() {
 			var err error
 
 			if forwardedMessage.ReplyToMessage != nil {
-				if forwardedMessage.ReplyToMessage.From.UserName == "" {
-					username = forwardedMessage.ReplyToMessage.From.String()
-				} else {
-					username = "@" + forwardedMessage.ReplyToMessage.From.UserName
-				}
-
+				username = formattedUsername(forwardedMessage.ReplyToMessage)
 				clientID = forwardedMessage.ReplyToMessage.From.ID
 				gayID, err = redisdb.Get(strconv.Itoa(clientID)).Result()
 
@@ -162,12 +157,7 @@ func main() {
 				msg.ReplyToMessageID = forwardedMessage.ReplyToMessage.MessageID
 				log.Println(gayID)
 			} else {
-				if forwardedMessage.From.UserName == "" {
-					username = forwardedMessage.From.String()
-				} else {
-					username = "@" + forwardedMessage.From.UserName
-				}
-
+				username = formattedUsername(forwardedMessage)
 				clientID = forwardedMessage.From.ID
 				gayID, err = redisdb.Get(strconv.Itoa(clientID)).Result()
 				log.Println(clientID)
@@ -188,7 +178,7 @@ func main() {
 
 			msg.Text = username + " has gay_id: #" + msg.Text
 
-			go sendToInflux(message.From.UserName, message.From.ID, message.Chat.ID, message.Chat.Title, "message", "gay_id")
+			go sendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "gay_id")
 
 			sendMessage(msg, bot)
 
@@ -197,7 +187,7 @@ func main() {
 
 			gayID := generateGayID()
 
-			msg.Text = "@" + update.Message.From.UserName + " you have updated gay_id: #" + gayID
+			msg.Text = formattedUsername(update.Message) + " you have updated gay_id: #" + gayID
 
 			err := redisdb.Set(strconv.Itoa(update.Message.From.ID), gayID, 0).Err()
 
@@ -205,11 +195,19 @@ func main() {
 				log.Println(err)
 			}
 
-			go sendToInflux(message.From.UserName, message.From.ID, message.Chat.ID, message.Chat.Title, "message", "renew_gay_id")
+			go sendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "renew_gay_id")
 
 			sendMessage(msg, bot)
 		}
 	}
+}
+
+func formattedUsername(message *tgbotapi.Message) string {
+	if message.From.UserName == "" {
+		return message.From.String()
+	}
+
+	return "@" + message.From.UserName
 }
 
 func generateGayID() string {
