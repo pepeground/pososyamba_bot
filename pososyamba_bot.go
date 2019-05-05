@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-redis/redis"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/influxdata/influxdb1-client/v2"
 	"log"
 	"math/rand"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-redis/redis"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	client "github.com/influxdata/influxdb1-client/v2"
 )
 
 var preparePhrases = []string{
@@ -124,8 +125,6 @@ func main() {
 		// so we should leave it empty.
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 
-		rand.Seed(time.Now().Unix())
-
 		// Extract the command from the Message.
 		switch update.Message.Command() {
 		case "pososyamba":
@@ -186,6 +185,8 @@ func main() {
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID, "")
 
 			gayID := generateGayID()
+
+			log.Println("GAY ID: ", gayID)
 
 			msg.Text = formattedUsername(update.Message) + " you have updated gay_id: #" + gayID
 
