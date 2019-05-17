@@ -4,6 +4,7 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/spf13/viper"
+	"github.com/thesunwave/pososyamba_bot/configs"
 	"math/rand"
 	"strings"
 )
@@ -12,7 +13,17 @@ type StringBuilder struct {
 	Config *viper.Viper
 }
 
-func (sb StringBuilder) FormattedUsername(message *tgbotapi.Message) string {
+var builded *StringBuilder
+
+func GetBuilder() *StringBuilder {
+	builded = &StringBuilder{
+		Config: configs.GetConfig(),
+	}
+
+	return builded
+}
+
+func (sb *StringBuilder) FormattedUsername(message *tgbotapi.Message) string {
 	if message.From.UserName == "" {
 		return message.From.String()
 	}
@@ -20,7 +31,7 @@ func (sb StringBuilder) FormattedUsername(message *tgbotapi.Message) string {
 	return "@" + message.From.UserName
 }
 
-func (sb StringBuilder) GenerateGayID() string {
+func (sb *StringBuilder) GenerateGayID() string {
 	names := sb.Config.GetStringSlice("gay_names")
 	adjectives := sb.Config.GetStringSlice("gay_adjectives")
 
@@ -31,7 +42,7 @@ func (sb StringBuilder) GenerateGayID() string {
 	)
 }
 
-func (sb StringBuilder) BuildPososyamba() string {
+func (sb *StringBuilder) BuildPososyamba() string {
 	var text []string
 
 	mainPososyamba := sb.Config.GetString("main_pososyamba")
