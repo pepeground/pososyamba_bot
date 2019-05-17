@@ -1,12 +1,12 @@
 package main
 
 import (
-	"fmt"
+	"github.com/thesunwave/pososyamba_bot/configs"
+	"github.com/thesunwave/pososyamba_bot/internal/app/string_builder"
 	"log"
 	"math/rand"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/go-redis/redis"
@@ -68,6 +68,11 @@ var redisdb = redis.NewClient(&redis.Options{
 })
 
 func main() {
+	configs.Init()
+
+	config := configs.GetConfig()
+	sb := string_builder.StringBuilder{Config: config}
+
 	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_APITOKEN"))
 
 	if err != nil {
@@ -89,7 +94,7 @@ func main() {
 			article := tgbotapi.NewInlineQueryResultArticle(
 				update.InlineQuery.ID,
 				"Выпустить пососямбу в этот чат",
-				preparePhrases[rand.Intn(len(preparePhrases))]+"\r\n\n"+buildPososyamba(),
+				preparePhrases[rand.Intn(len(preparePhrases))]+"\r\n\n"+sb.BuildPososyamba(),
 			)
 
 			inlineConf := tgbotapi.InlineConfig{
@@ -135,7 +140,7 @@ func main() {
 
 			sendMessage(msg, bot)
 
-			msg.Text = buildPososyamba()
+			msg.Text = sb.BuildPososyamba()
 
 			sendMessage(msg, bot)
 		case "gay_id":
@@ -148,7 +153,7 @@ func main() {
 			var err error
 
 			if forwardedMessage.ReplyToMessage != nil {
-				username = formattedUsername(forwardedMessage.ReplyToMessage)
+				username = sb.FormattedUsername(forwardedMessage.ReplyToMessage)
 				clientID = forwardedMessage.ReplyToMessage.From.ID
 				gayID, err = redisdb.Get(strconv.Itoa(clientID)).Result()
 
@@ -156,7 +161,7 @@ func main() {
 				msg.ReplyToMessageID = forwardedMessage.ReplyToMessage.MessageID
 				log.Println(gayID)
 			} else {
-				username = formattedUsername(forwardedMessage)
+				username = sb.FormattedUsername(forwardedMessage)
 				clientID = forwardedMessage.From.ID
 				gayID, err = redisdb.Get(strconv.Itoa(clientID)).Result()
 				log.Println(clientID)
@@ -164,7 +169,7 @@ func main() {
 			}
 
 			if err != nil {
-				msg.Text = generateGayID()
+				msg.Text = sb.GenerateGayID()
 
 				err := redisdb.Set(strconv.Itoa(clientID), msg.Text, 0).Err()
 
@@ -184,11 +189,11 @@ func main() {
 		case "renew_gay_id":
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID, "")
 
-			gayID := generateGayID()
+			gayID := sb.GenerateGayID()
 
 			log.Println("GAY ID: ", gayID)
 
-			msg.Text = formattedUsername(update.Message) + " you have updated gay_id: #" + gayID
+			msg.Text = sb.FormattedUsername(update.Message) + " you have updated gay_id: #" + gayID
 
 			err := redisdb.Set(strconv.Itoa(update.Message.From.ID), gayID, 0).Err()
 
@@ -203,36 +208,10 @@ func main() {
 	}
 }
 
-func formattedUsername(message *tgbotapi.Message) string {
-	if message.From.UserName == "" {
-		return message.From.String()
-	}
-
-	return "@" + message.From.UserName
-}
-
-func generateGayID() string {
-	return fmt.Sprintf("%s_%s_%v",
-		gayAdjective[rand.Intn(len(gayAdjective))],
-		gayName[rand.Intn(len(gayName))],
-		rand.Intn(10000),
-	)
-}
-
 func sendMessage(msg tgbotapi.MessageConfig, bot *tgbotapi.BotAPI) {
 	if _, err := bot.Send(msg); err != nil {
 		log.Panic(err)
 	}
-}
-
-func buildPososyamba() string {
-	text := []string{}
-
-	for _, elem := range mainPososyamba {
-		text = append(text, string(elem))
-	}
-
-	return strings.Join(text, "\r\n\n")
 }
 
 func sendToInflux(username string, userID int, chatID int64, chatTitle, messageType, command string) {
