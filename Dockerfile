@@ -7,8 +7,8 @@ RUN apk update && apk upgrade && \
 
 COPY . ./
 
-RUN go get
+RUN go mod download
 
-RUN go build pososyamba_bot.go
+RUN go build ./cmd/pososyamba_bot/main.go
 
-CMD [ "./pososyamba_bot" ]
+CMD [ "./main" ]
