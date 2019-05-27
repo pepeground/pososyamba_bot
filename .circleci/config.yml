@@ -1,0 +1,52 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.12
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-pkg-cache
+      - run: go mod download
+      - run:
+          name: Run unit tests
+          command: go test -race ./...
+      - run: go build ./cmd/pososyamba_bot/main.go
+      - save_cache: # Store cache in the /go/pkg directory
+          key: v1-pkg-cache
+          paths:
+            - "/go/pkg"
+  deploy:
+    machine: true
+    steps:
+      - run:
+          name: Deploy Over SSH
+          command: |
+            ssh $SSH_USER@$SSH_HOST "IMAGE_TAG=$CIRCLE_SHA1 docker stack deploy --with-registry-auth --compose-file=docker-compose.poso.yml poso"
+  push-image:
+    machine: true
+    steps:
+      - checkout
+      - run: docker login -u ${DOCKERHUB_LOGIN} -p ${DOCKERHUB_PASSWORD}
+      - run: docker build --rm -f "Dockerfile" -t thesunwave/pososyamba:$CIRCLE_SHA1 .
+      - run: docker push thesunwave/pososyamba:$CIRCLE_SHA1
+
+workflows:
+  version: 2
+  build-and-deploy:
+    jobs:
+      - build
+      - push-image:
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
+      - deploy:
+          requires:
+            - build
+            - push-image
+          filters:
+            branches:
+              only: master
