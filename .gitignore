@@ -1,7 +1,8 @@
 .vscode
+.idea
 .env
 .env.*
 
 !.env.sample
 config/config.yml
-./main
+main
