@@ -17,14 +17,21 @@ jobs:
           key: v1-pkg-cache
           paths:
             - "/go/pkg"
-  deploy:
+  deploy_production:
     machine: true
     steps:
       - run:
-          name: Deploy Over SSH
+          name: Deploy Production Over SSH
           command: |
             ssh $SSH_USER@$SSH_HOST "IMAGE_TAG=$CIRCLE_SHA1 docker stack deploy --with-registry-auth --compose-file=docker-compose.poso.yml poso"
-  push-image:
+  deploy_staging:
+    machine: true
+    steps:
+      - run:
+          name: Deploy Staging Over SSH
+          command: |
+            ssh $SSH_USER@$SSH_HOST "IMAGE_TAG=$CIRCLE_SHA1 docker stack deploy --with-registry-auth --compose-file=docker-compose.poso.staging.yml poso_staging"
+  push_image:
     machine: true
     steps:
       - checkout
@@ -37,16 +44,25 @@ workflows:
   build-and-deploy:
     jobs:
       - build
-      - push-image:
+      - push_image:
           requires:
             - build
           filters:
             branches:
-              only: master
-      - deploy:
+              only:
+                - master
+                - staging
+      - deploy_staging:
           requires:
             - build
-            - push-image
+            - push_image
+          filters:
+            branches:
+              only: staging
+      - deploy_production:
+          requires:
+            - build
+            - push_image
           filters:
             branches:
               only: master

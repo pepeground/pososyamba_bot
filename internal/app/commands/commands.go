@@ -39,6 +39,14 @@ func (params RequiredParams) Pososyamba() *[]tgbotapi.MessageConfig {
 }
 
 func (params RequiredParams) GayID() *[]tgbotapi.MessageConfig {
+	return getID("gay_id", &params)
+}
+
+func (params RequiredParams) MrazID() *[]tgbotapi.MessageConfig {
+	return getID("mraz_id", &params)
+}
+
+func getID(message_type string, params *RequiredParams) *[]tgbotapi.MessageConfig {
 	var messages []tgbotapi.MessageConfig
 	var gayID, username string
 	var clientID int
@@ -78,9 +86,9 @@ func (params RequiredParams) GayID() *[]tgbotapi.MessageConfig {
 		msg.Text = gayID
 	}
 
-	msg.Text = username + " has gay_id: #" + msg.Text
+	msg.Text = username + " has " + message_type + ": #" + msg.Text
 
-	go analytics.SendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "gay_id")
+	go analytics.SendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", message_type)
 
 	messages = append(messages, msg)
 
