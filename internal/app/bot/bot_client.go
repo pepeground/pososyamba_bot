@@ -103,6 +103,8 @@ func inlineQueryHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update, preparedPh
 }
 
 func messageCommandHandler(update *tgbotapi.Update, botClient *BotClient) {
+	var messages *[]tgbotapi.MessageConfig
+
 	handlers := commands.RequiredParams{
 		Update:        update,
 		StringBuilder: string_builder.GetBuilder(),
@@ -112,22 +114,16 @@ func messageCommandHandler(update *tgbotapi.Update, botClient *BotClient) {
 
 	switch update.Message.Command() {
 	case "pososyamba":
-		messages := handlers.Pososyamba()
-
-		botClient.sendMessage(*messages)
+		messages = handlers.Pososyamba()
 	case "gay_id":
-		messages := handlers.GayID()
-
-		botClient.sendMessage(*messages)
+		messages = handlers.GayID()
 	case "mraz_id":
-		messages := handlers.MrazID()
-
-		botClient.sendMessage(*messages)
+		messages = handlers.MrazID()
 	case "renew_gay_id":
-		messages := handlers.RenewGayID()
-
-		botClient.sendMessage(*messages)
+		messages = handlers.RenewGayID()
 	}
+
+	botClient.sendMessage(*messages)
 }
 
 func (c *BotClient) sendMessage(messages []tgbotapi.MessageConfig) {
