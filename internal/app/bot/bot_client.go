@@ -6,6 +6,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	"github.com/thesunwave/pososyamba_bot/configs"
+	"github.com/thesunwave/pososyamba_bot/internal/app/admin"
 	"github.com/thesunwave/pososyamba_bot/internal/app/analytics"
 	"github.com/thesunwave/pososyamba_bot/internal/app/commands"
 	"github.com/thesunwave/pososyamba_bot/internal/app/string_builder"
@@ -112,6 +113,13 @@ func messageCommandHandler(update *tgbotapi.Update, botClient *BotClient) {
 		Redis:         botClient.Redis,
 	}
 
+	adminHandlers := admin.RequiredParams{
+		Update:        update,
+		StringBuilder: string_builder.GetBuilder(),
+		Config:        configs.GetConfig(),
+		Redis:         botClient.Redis,
+	}
+
 	switch update.Message.Command() {
 	case "pososyamba":
 		messages = handlers.Pososyamba()
@@ -121,6 +129,8 @@ func messageCommandHandler(update *tgbotapi.Update, botClient *BotClient) {
 		messages = handlers.MrazID()
 	case "renew_gay_id":
 		messages = handlers.RenewGayID()
+	case "change_gay_id":
+		messages = adminHandlers.ChangeGayID()
 	}
 
 	botClient.sendMessage(*messages)
