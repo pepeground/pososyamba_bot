@@ -1,11 +1,11 @@
 package commands
 
 import (
-	"github.com/go-redis/redis"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	"github.com/thesunwave/pososyamba_bot/internal/app/analytics"
+	"github.com/thesunwave/pososyamba_bot/internal/app/cache"
 	"github.com/thesunwave/pososyamba_bot/internal/app/string_builder"
 	"math/rand"
 	"strconv"
@@ -14,7 +14,6 @@ import (
 type RequiredParams struct {
 	Update        *tgbotapi.Update
 	StringBuilder *string_builder.StringBuilder
-	Redis         *redis.Client
 	Config        *viper.Viper
 }
 
@@ -61,7 +60,7 @@ func getID(message_type string, params *RequiredParams) *[]tgbotapi.MessageConfi
 	if forwardedMessage.ReplyToMessage != nil {
 		username = params.StringBuilder.FormattedUsername(forwardedMessage.ReplyToMessage)
 		clientID = forwardedMessage.ReplyToMessage.From.ID
-		gayID, err = params.Redis.Get(strconv.Itoa(clientID)).Result()
+		gayID, err = cache.Redis().Get(strconv.Itoa(clientID)).Result()
 
 		log.Info().Str("ClientID", string(clientID))
 		msg.ReplyToMessageID = forwardedMessage.ReplyToMessage.MessageID
@@ -69,15 +68,15 @@ func getID(message_type string, params *RequiredParams) *[]tgbotapi.MessageConfi
 	} else {
 		username = params.StringBuilder.FormattedUsername(forwardedMessage)
 		clientID = forwardedMessage.From.ID
-		gayID, err = params.Redis.Get(strconv.Itoa(clientID)).Result()
+		gayID, err = cache.Redis().Get(strconv.Itoa(clientID)).Result()
 		log.Info().Str("ClientID", string(clientID))
 		log.Info().Str("ClientID", gayID)
 	}
-
+	// TODO: Add a handler to have an opportunity to distinguish empty key from other errors
 	if err != nil {
 		msg.Text = params.StringBuilder.GenerateGayID()
 
-		err := params.Redis.Set(strconv.Itoa(clientID), msg.Text, 0).Err()
+		err := cache.Redis().Set(strconv.Itoa(clientID), msg.Text, 0).Err()
 
 		if err != nil {
 			log.Error().Err(err)
@@ -108,7 +107,7 @@ func (params RequiredParams) RenewGayID() *[]tgbotapi.MessageConfig {
 
 	msg.Text = params.StringBuilder.FormattedUsername(message) + " you have updated gay_id: #" + gayID
 
-	err := params.Redis.Set(strconv.Itoa(message.From.ID), gayID, 0).Err()
+	err := cache.Redis().Set(strconv.Itoa(message.From.ID), gayID, 0).Err()
 
 	if err != nil {
 		log.Error().Err(err)
