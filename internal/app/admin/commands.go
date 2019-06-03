@@ -1,10 +1,10 @@
 package admin
 
 import (
+	"github.com/thesunwave/pososyamba_bot/internal/app/cache"
 	"os"
 	"strings"
 
-	"github.com/go-redis/redis"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cast"
@@ -16,7 +16,6 @@ import (
 type RequiredParams struct {
 	Update        *tgbotapi.Update
 	StringBuilder *string_builder.StringBuilder
-	Redis         *redis.Client
 	Config        *viper.Viper
 }
 
@@ -70,7 +69,7 @@ func (params *RequiredParams) ChangeGayID() *[]tgbotapi.MessageConfig {
 
 	msg.Text = newGayID
 
-	err = params.Redis.Set(clientID, msg.Text, 0).Err()
+	err = cache.Redis().Set(clientID, msg.Text, 0).Err()
 	if err != nil {
 		log.Error().Err(err)
 		msg.Text = err.Error()
