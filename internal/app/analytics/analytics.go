@@ -4,6 +4,7 @@ import (
 	client "github.com/influxdata/influxdb1-client/v2"
 	"log"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -24,7 +25,13 @@ func SendToInflux(username string, userID int, chatID int64, chatTitle, messageT
 	})
 
 	// Create a point and add to batch
-	tags := map[string]string{"command": command}
+	tags := map[string]string{
+		"command":  command,
+		"chat_id":  strconv.Itoa(int(chatID)),
+		"user_id":  strconv.Itoa(int(userID)),
+		"username": username,
+	}
+
 	fields := map[string]interface{}{
 		"username":    username,
 		"user_id":     userID,

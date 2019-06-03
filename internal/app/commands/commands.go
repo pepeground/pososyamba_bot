@@ -1,11 +1,11 @@
 package commands
 
 import (
-	"github.com/go-redis/redis"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	"github.com/thesunwave/pososyamba_bot/internal/app/analytics"
+	"github.com/thesunwave/pososyamba_bot/internal/app/cache"
 	"github.com/thesunwave/pososyamba_bot/internal/app/string_builder"
 	"math/rand"
 	"strconv"
@@ -14,7 +14,6 @@ import (
 type RequiredParams struct {
 	Update        *tgbotapi.Update
 	StringBuilder *string_builder.StringBuilder
-	Redis         *redis.Client
 	Config        *viper.Viper
 }
 
@@ -39,6 +38,14 @@ func (params RequiredParams) Pososyamba() *[]tgbotapi.MessageConfig {
 }
 
 func (params RequiredParams) GayID() *[]tgbotapi.MessageConfig {
+	return getID("gay_id", &params)
+}
+
+func (params RequiredParams) MrazID() *[]tgbotapi.MessageConfig {
+	return getID("mraz_id", &params)
+}
+
+func getID(message_type string, params *RequiredParams) *[]tgbotapi.MessageConfig {
 	var messages []tgbotapi.MessageConfig
 	var gayID, username string
 	var clientID int
@@ -53,7 +60,7 @@ func (params RequiredParams) GayID() *[]tgbotapi.MessageConfig {
 	if forwardedMessage.ReplyToMessage != nil {
 		username = params.StringBuilder.FormattedUsername(forwardedMessage.ReplyToMessage)
 		clientID = forwardedMessage.ReplyToMessage.From.ID
-		gayID, err = params.Redis.Get(strconv.Itoa(clientID)).Result()
+		gayID, err = cache.Redis().Get(strconv.Itoa(clientID)).Result()
 
 		log.Info().Str("ClientID", string(clientID))
 		msg.ReplyToMessageID = forwardedMessage.ReplyToMessage.MessageID
@@ -61,15 +68,15 @@ func (params RequiredParams) GayID() *[]tgbotapi.MessageConfig {
 	} else {
 		username = params.StringBuilder.FormattedUsername(forwardedMessage)
 		clientID = forwardedMessage.From.ID
-		gayID, err = params.Redis.Get(strconv.Itoa(clientID)).Result()
+		gayID, err = cache.Redis().Get(strconv.Itoa(clientID)).Result()
 		log.Info().Str("ClientID", string(clientID))
 		log.Info().Str("ClientID", gayID)
 	}
-
+	// TODO: Add a handler to have an opportunity to distinguish empty key from other errors
 	if err != nil {
 		msg.Text = params.StringBuilder.GenerateGayID()
 
-		err := params.Redis.Set(strconv.Itoa(clientID), msg.Text, 0).Err()
+		err := cache.Redis().Set(strconv.Itoa(clientID), msg.Text, 0).Err()
 
 		if err != nil {
 			log.Error().Err(err)
@@ -78,9 +85,9 @@ func (params RequiredParams) GayID() *[]tgbotapi.MessageConfig {
 		msg.Text = gayID
 	}
 
-	msg.Text = username + " has gay_id: #" + msg.Text
+	msg.Text = username + " has " + message_type + ": #" + msg.Text
 
-	go analytics.SendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "gay_id")
+	go analytics.SendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", message_type)
 
 	messages = append(messages, msg)
 
@@ -100,7 +107,7 @@ func (params RequiredParams) RenewGayID() *[]tgbotapi.MessageConfig {
 
 	msg.Text = params.StringBuilder.FormattedUsername(message) + " you have updated gay_id: #" + gayID
 
-	err := params.Redis.Set(strconv.Itoa(message.From.ID), gayID, 0).Err()
+	err := cache.Redis().Set(strconv.Itoa(message.From.ID), gayID, 0).Err()
 
 	if err != nil {
 		log.Error().Err(err)

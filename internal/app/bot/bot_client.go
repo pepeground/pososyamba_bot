@@ -1,14 +1,15 @@
 package bot_client
 
 import (
-	"github.com/go-redis/redis"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	"github.com/thesunwave/pososyamba_bot/configs"
+	"github.com/thesunwave/pososyamba_bot/internal/app/admin"
 	"github.com/thesunwave/pososyamba_bot/internal/app/analytics"
 	"github.com/thesunwave/pososyamba_bot/internal/app/commands"
 	"github.com/thesunwave/pososyamba_bot/internal/app/string_builder"
+
 	"math/rand"
 	"os"
 )
@@ -16,7 +17,6 @@ import (
 type BotClient struct {
 	Config *viper.Viper
 	Bot    *tgbotapi.BotAPI
-	Redis  *redis.Client
 }
 
 func Init() {
@@ -28,16 +28,9 @@ func Init() {
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
-	redisdb := redis.NewClient(&redis.Options{
-		Addr:     "redis:6379", // use default Addr
-		Password: "",           // no password set
-		DB:       0,            // use default DB
-	})
-
 	botClient := BotClient{
 		Config: configs.GetConfig(),
 		Bot:    bot,
-		Redis:  redisdb,
 	}
 
 	botClient.run()
@@ -103,27 +96,34 @@ func inlineQueryHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update, preparedPh
 }
 
 func messageCommandHandler(update *tgbotapi.Update, botClient *BotClient) {
+	var messages *[]tgbotapi.MessageConfig
+
 	handlers := commands.RequiredParams{
 		Update:        update,
 		StringBuilder: string_builder.GetBuilder(),
 		Config:        configs.GetConfig(),
-		Redis:         botClient.Redis,
+	}
+
+	adminHandlers := admin.RequiredParams{
+		Update:        update,
+		StringBuilder: string_builder.GetBuilder(),
+		Config:        configs.GetConfig(),
 	}
 
 	switch update.Message.Command() {
 	case "pososyamba":
-		messages := handlers.Pososyamba()
-
-		botClient.sendMessage(*messages)
+		messages = handlers.Pososyamba()
 	case "gay_id":
-		messages := handlers.GayID()
-
-		botClient.sendMessage(*messages)
+		messages = handlers.GayID()
+	case "mraz_id":
+		messages = handlers.MrazID()
 	case "renew_gay_id":
-		messages := handlers.RenewGayID()
-
-		botClient.sendMessage(*messages)
+		messages = handlers.RenewGayID()
+	case "change_gay_id":
+		messages = adminHandlers.ChangeGayID()
 	}
+
+	botClient.sendMessage(*messages)
 }
 
 func (c *BotClient) sendMessage(messages []tgbotapi.MessageConfig) {
