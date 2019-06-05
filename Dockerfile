@@ -1,4 +1,4 @@
-FROM golang:1.12-alpine
+FROM golang:1.12-alpine AS pososyamba
 
 WORKDIR /application
 
@@ -12,3 +12,9 @@ RUN go mod download
 RUN go build ./cmd/pososyamba_bot/main.go
 
 CMD [ "./main" ]
+
+FROM alpine:latest
+WORKDIR /pososyamba/
+COPY --from=pososyamba /application/main pososyamba
+COPY --from=pososyamba /application/configs .
+CMD ["./pososyamba"]
