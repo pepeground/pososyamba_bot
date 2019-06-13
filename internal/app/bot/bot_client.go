@@ -121,9 +121,11 @@ func messageCommandHandler(update *tgbotapi.Update, botClient *BotClient) {
 		messages = handlers.RenewGayID()
 	case "change_gay_id":
 		messages = adminHandlers.ChangeGayID()
+	case "hot_news":
+		messages = handlers.HotNews()
 	}
 
-	botClient.sendMessage(*messages)
+	go botClient.sendMessage(*messages)
 }
 
 func (c *BotClient) sendMessage(messages []tgbotapi.MessageConfig) {
