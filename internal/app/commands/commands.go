@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/thesunwave/pososyamba_bot/internal/app/analytics"
 	"github.com/thesunwave/pososyamba_bot/internal/app/cache"
+	"github.com/thesunwave/pososyamba_bot/internal/app/fakenews"
 	"github.com/thesunwave/pososyamba_bot/internal/app/string_builder"
 	"math/rand"
 	"strconv"
@@ -114,6 +115,28 @@ func (params RequiredParams) RenewGayID() *[]tgbotapi.MessageConfig {
 	}
 
 	go analytics.SendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "renew_gay_id")
+
+	messages = append(messages, msg)
+
+	return &messages
+}
+
+func (params RequiredParams) HotNews() *[]tgbotapi.MessageConfig {
+	var messages []tgbotapi.MessageConfig
+
+	message := params.Update.Message
+
+	news, err := fakenews.GenerateNews()
+
+	if err != nil {
+		log.Error().Err(err)
+		return &messages
+	}
+
+	msg := tgbotapi.NewMessage(message.Chat.ID, "")
+	msg.Text = news
+
+	go analytics.SendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "hot_news")
 
 	messages = append(messages, msg)
 
