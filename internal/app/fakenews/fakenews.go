@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"github.com/mb-14/gomarkov"
 	"github.com/rs/zerolog/log"
+	"github.com/thesunwave/pososyamba_bot/internal/app/cache"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -13,7 +15,7 @@ type mMTitle struct {
 	Title string
 }
 
-func GenerateNews() (string, error) {
+func generateNews() (*[]string, error) {
 	//Create a chain of order 2
 	chain, err := loadModel()
 
@@ -21,7 +23,20 @@ func GenerateNews() (string, error) {
 		chain, err = BuildModel()
 	}
 
-	return generateTitle(chain), err
+	var newsList []string
+
+	for i := 0; i < 2000; i++ {
+		newsList = append(newsList, generateTitle(chain))
+	}
+
+	result := removeDuplicatesUnordered(newsList)
+
+	err = saveToRedis(&result)
+	if err != nil {
+		log.Error().Err(err)
+	}
+
+	return &result, err
 }
 
 func BuildModel() (*gomarkov.Chain, error) {
@@ -39,6 +54,53 @@ func BuildModel() (*gomarkov.Chain, error) {
 	}
 
 	return chain, err
+}
+
+func saveToRedis(titles *[]string) error {
+	return cache.Redis().SAdd("news_titles", *titles).Err()
+}
+
+func FetchTitle() (string, error) {
+	redisObj := cache.Redis().SPop("news_titles")
+	var err error
+
+	log.Print(redisObj.Val())
+
+	if redisObj.Err() != nil {
+		log.Error().Err(redisObj.Err())
+
+		err = os.Remove("model.json")
+		if err != nil {
+			log.Error().Err(err)
+		}
+
+		result, err := generateNews()
+
+		log.Print(result)
+		if err != nil {
+			log.Error().Err(err)
+		}
+
+		redisObj = cache.Redis().SPop("news_titles")
+	}
+
+	return redisObj.Val(), err
+}
+
+func removeDuplicatesUnordered(elements []string) []string {
+	encountered := map[string]bool{}
+
+	// Create a map of all unique elements.
+	for v := range elements {
+		encountered[elements[v]] = true
+	}
+
+	// Place all keys from the map into a slice.
+	result := []string{}
+	for key, _ := range encountered {
+		result = append(result, key)
+	}
+	return result
 }
 
 func loadModel() (*gomarkov.Chain, error) {
