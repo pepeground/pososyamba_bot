@@ -126,7 +126,7 @@ func (params RequiredParams) HotNews() *[]tgbotapi.MessageConfig {
 
 	message := params.Update.Message
 
-	news, err := fakenews.GenerateNews()
+	news, err := fakenews.FetchTitle()
 
 	if err != nil {
 		log.Error().Err(err)
