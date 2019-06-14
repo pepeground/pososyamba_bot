@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/mb-14/gomarkov"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/cast"
 	"github.com/thesunwave/pososyamba_bot/internal/app/cache"
 	"io/ioutil"
 	"net/http"
@@ -11,39 +12,47 @@ import (
 	"strings"
 )
 
-type mMTitle struct {
-	Title string
+type Response struct {
+	Documents map[string]Document `json:documents`
+}
+
+type Document struct {
+	Title string `json:title`
 }
 
 func generateNews() (*[]string, error) {
 	//Create a chain of order 2
 	chain, err := loadModel()
 
+	var titles *[]string
+
 	if err != nil {
-		chain, err = BuildModel()
+		chain, titles, err = BuildModel()
 	}
 
 	var newsList []string
 
-	for i := 0; i < 2000; i++ {
+	for i := 0; i < 1000; i++ {
 		newsList = append(newsList, generateTitle(chain))
 	}
 
-	result := removeDuplicatesUnordered(newsList)
+	log.Print(newsList)
+	err = saveToRedis(&newsList)
 
-	err = saveToRedis(&result)
+	cache.Redis().SRem("news_titles", *titles)
+
 	if err != nil {
 		log.Error().Err(err)
 	}
 
-	return &result, err
+	return &newsList, err
 }
 
-func BuildModel() (*gomarkov.Chain, error) {
+func BuildModel() (*gomarkov.Chain, *[]string, error) {
 	chain := gomarkov.NewChain(1)
 	titles := fetchTitles()
-	for _, story := range titles {
-		chain.Add(strings.Split(story.Title, " "))
+	for _, story := range *titles {
+		chain.Add(strings.Split(story, " "))
 	}
 
 	jsonObj, _ := json.Marshal(chain)
@@ -53,10 +62,11 @@ func BuildModel() (*gomarkov.Chain, error) {
 		log.Error().Err(err)
 	}
 
-	return chain, err
+	return chain, titles, err
 }
 
 func saveToRedis(titles *[]string) error {
+	log.Print(len(*titles))
 	return cache.Redis().SAdd("news_titles", *titles).Err()
 }
 
@@ -74,9 +84,8 @@ func FetchTitle() (string, error) {
 			log.Error().Err(err)
 		}
 
-		result, err := generateNews()
+		_, err := generateNews()
 
-		log.Print(result)
 		if err != nil {
 			log.Error().Err(err)
 		}
@@ -85,22 +94,6 @@ func FetchTitle() (string, error) {
 	}
 
 	return redisObj.Val(), err
-}
-
-func removeDuplicatesUnordered(elements []string) []string {
-	encountered := map[string]bool{}
-
-	// Create a map of all unique elements.
-	for v := range elements {
-		encountered[elements[v]] = true
-	}
-
-	// Place all keys from the map into a slice.
-	result := []string{}
-	for key, _ := range encountered {
-		result = append(result, key)
-	}
-	return result
 }
 
 func loadModel() (*gomarkov.Chain, error) {
@@ -126,32 +119,32 @@ func generateTitle(chain *gomarkov.Chain) string {
 	return strings.Join(tokens[1:len(tokens)-1], " ")
 }
 
-func fetchTitles() []mMTitle {
-	var titles []mMTitle
-	var i interface{}
+func fetchTitles() *[]string {
+	var titles []string
+	var response Response
 
-	resp, err := http.Get("https://meduza.io/api/v3/search?chrono=news&locale=ru&page=0&per_page=150")
-	if err != nil {
-		log.Error().Err(err)
+	for i := 0; i < 10; i++ {
+		resp, err := http.Get("https://meduza.io/api/v3/search?chrono=news&locale=ru&page=" + cast.ToString(i) + "&per_page=50")
+		if err != nil {
+			log.Error().Err(err)
+		}
+
+		body, readErr := ioutil.ReadAll(resp.Body)
+		if readErr != nil {
+			log.Error().Err(err)
+		}
+
+		err = json.Unmarshal(body, &response)
+
+		for _, v := range response.Documents {
+			log.Print(v.Title)
+			titles = append(titles, v.Title)
+		}
+
+		if err != nil {
+			log.Error().Err(err)
+		}
 	}
 
-	body, readErr := ioutil.ReadAll(resp.Body)
-	if readErr != nil {
-		log.Error().Err(err)
-	}
-
-	err = json.Unmarshal(body, &i)
-
-	if err != nil {
-		log.Error().Err(err)
-	}
-
-	m := i.(map[string]interface{})
-	z := m["documents"].(map[string]interface{})
-
-	for _, v := range z {
-		titles = append(titles, mMTitle{Title: v.(map[string]interface{})["title"].(string)})
-	}
-
-	return titles
+	return &titles
 }
