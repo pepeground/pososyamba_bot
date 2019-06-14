@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 )
 
 type Response struct {
@@ -32,11 +33,10 @@ func generateNews() (*[]string, error) {
 
 	var newsList []string
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 5000; i++ {
 		newsList = append(newsList, generateTitle(chain))
 	}
 
-	log.Print(newsList)
 	err = saveToRedis(&newsList)
 
 	cache.Redis().SRem("news_titles", *titles)
@@ -66,7 +66,6 @@ func BuildModel() (*gomarkov.Chain, *[]string, error) {
 }
 
 func saveToRedis(titles *[]string) error {
-	log.Print(len(*titles))
 	return cache.Redis().SAdd("news_titles", *titles).Err()
 }
 
@@ -121,29 +120,43 @@ func generateTitle(chain *gomarkov.Chain) string {
 
 func fetchTitles() *[]string {
 	var titles []string
+	var wg sync.WaitGroup
+
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			titles = append(titles, *collectTitles(i)...)
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+
+	return &titles
+}
+
+func collectTitles(page int) *[]string {
+	var titles []string
 	var response Response
 
-	for i := 0; i < 10; i++ {
-		resp, err := http.Get("https://meduza.io/api/v3/search?chrono=news&locale=ru&page=" + cast.ToString(i) + "&per_page=50")
-		if err != nil {
-			log.Error().Err(err)
-		}
+	resp, err := http.Get("https://meduza.io/api/v3/search?chrono=news&locale=ru&page=" + cast.ToString(page) + "&per_page=50")
+	if err != nil {
+		log.Error().Err(err)
+	}
 
-		body, readErr := ioutil.ReadAll(resp.Body)
-		if readErr != nil {
-			log.Error().Err(err)
-		}
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		log.Error().Err(err)
+	}
 
-		err = json.Unmarshal(body, &response)
+	err = json.Unmarshal(body, &response)
 
-		for _, v := range response.Documents {
-			log.Print(v.Title)
-			titles = append(titles, v.Title)
-		}
+	for _, v := range response.Documents {
+		titles = append(titles, v.Title)
+	}
 
-		if err != nil {
-			log.Error().Err(err)
-		}
+	if err != nil {
+		log.Error().Err(err)
 	}
 
 	return &titles
