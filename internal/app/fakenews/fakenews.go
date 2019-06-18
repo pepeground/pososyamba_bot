@@ -70,8 +70,10 @@ func saveToRedis(titles *[]string) error {
 }
 
 func FetchTitle() (string, error) {
-	redisObj := cache.Redis().SPop("news_titles")
 	var err error
+	var result string
+
+	redisObj := cache.Redis().SPop("news_titles")
 
 	log.Print(redisObj.Val())
 
@@ -92,7 +94,9 @@ func FetchTitle() (string, error) {
 		redisObj = cache.Redis().SPop("news_titles")
 	}
 
-	return redisObj.Val(), err
+	result = strings.Replace(redisObj.Val(), "Голунов", "Говнов", -1)
+
+	return result, err
 }
 
 func loadModel() (*gomarkov.Chain, error) {
@@ -122,7 +126,7 @@ func fetchTitles() *[]string {
 	var titles []string
 	var wg sync.WaitGroup
 
-	for i := 0; i < 8; i++ {
+	for i := 0; i < 3; i++ {
 		wg.Add(1)
 		go func() {
 			titles = append(titles, *collectTitles(i)...)
