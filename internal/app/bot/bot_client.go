@@ -3,11 +3,13 @@ package bot_client
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/cast"
 	"github.com/spf13/viper"
 	"github.com/thesunwave/pososyamba_bot/configs"
 	"github.com/thesunwave/pososyamba_bot/internal/app/admin"
 	"github.com/thesunwave/pososyamba_bot/internal/app/analytics"
 	"github.com/thesunwave/pososyamba_bot/internal/app/commands"
+	"github.com/thesunwave/pososyamba_bot/internal/app/fakenews"
 	"github.com/thesunwave/pososyamba_bot/internal/app/string_builder"
 
 	"math/rand"
@@ -72,14 +74,21 @@ func (c BotClient) run() {
 
 func inlineQueryHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update, preparedPhrases []string, sb string_builder.StringBuilder) {
 	article := tgbotapi.NewInlineQueryResultArticle(
-		update.InlineQuery.ID,
+		cast.ToString(rand.Intn(1000000)),
 		"Выпустить пососямбу в этот чат",
 		preparedPhrases[rand.Intn(len(preparedPhrases))]+"\r\n\n"+sb.BuildPososyamba(),
 	)
 
+	title, _ := fakenews.FetchTitle()
+	fakeNews := tgbotapi.NewInlineQueryResultArticle(
+		cast.ToString(rand.Intn(1000000)),
+		"Сгенерить фейкньюс",
+		title,
+	)
+
 	inlineConf := tgbotapi.InlineConfig{
 		InlineQueryID: update.InlineQuery.ID,
-		Results:       []interface{}{article},
+		Results:       []interface{}{article, fakeNews},
 	}
 
 	query := update.InlineQuery
