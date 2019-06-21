@@ -130,6 +130,10 @@ func messageCommandHandler(update *tgbotapi.Update, botClient *BotClient) {
 		messages = handlers.RenewGayID()
 	case "change_gay_id":
 		messages = adminHandlers.ChangeGayID()
+	case "count_news":
+		messages = adminHandlers.CountNews()
+	case "flush_hot_news":
+		messages = adminHandlers.FlushHotNews()
 	case "hot_news":
 		messages = handlers.HotNews()
 	}
