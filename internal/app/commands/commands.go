@@ -18,6 +18,17 @@ type RequiredParams struct {
 	Config        *viper.Viper
 }
 
+func (params RequiredParams) Start() *[]tgbotapi.MessageConfig {
+	var messages []tgbotapi.MessageConfig
+
+	msg := tgbotapi.NewMessage(params.Update.Message.Chat.ID, "")
+	msg.Text = "Hi there. That bot can make some things, you can get know if you are typing a slash (/)"
+
+	messages = append(messages, msg)
+
+	return &messages
+}
+
 func (params RequiredParams) Pososyamba() *[]tgbotapi.MessageConfig {
 	var messages []tgbotapi.MessageConfig
 

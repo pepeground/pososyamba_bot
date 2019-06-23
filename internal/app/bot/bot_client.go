@@ -120,6 +120,8 @@ func messageCommandHandler(update *tgbotapi.Update, botClient *BotClient) {
 	}
 
 	switch update.Message.Command() {
+	case "start":
+		messages = handlers.Start()
 	case "pososyamba":
 		messages = handlers.Pososyamba()
 	case "gay_id":
@@ -136,6 +138,8 @@ func messageCommandHandler(update *tgbotapi.Update, botClient *BotClient) {
 		messages = adminHandlers.FlushHotNews()
 	case "hot_news":
 		messages = handlers.HotNews()
+	default:
+		return
 	}
 
 	go botClient.sendMessage(*messages)
