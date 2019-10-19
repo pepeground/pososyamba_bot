@@ -76,7 +76,7 @@ func buildModel(chain *gomarkov.Chain) (*gomarkov.Chain, *[]string, error) {
 	}
 
 	jsonObj, _ := json.Marshal(chain)
-	err := ioutil.WriteFile("model.json", jsonObj, 0644)
+	err := ioutil.WriteFile("model/model.json", jsonObj, 0644)
 
 	if err != nil {
 		log.Error().Err(err)
@@ -90,16 +90,16 @@ func saveToRedis(titles *[]string) error {
 }
 
 func loadModel() (*gomarkov.Chain, error) {
-	var chain gomarkov.Chain
-	data, err := ioutil.ReadFile("model.json")
+	chain := gomarkov.NewChain(1)
+	data, err := ioutil.ReadFile("model/model.json")
 	if err != nil {
-		return &chain, err
+		return chain, err
 	}
 	err = json.Unmarshal(data, &chain)
 	if err != nil {
-		return &chain, err
+		return chain, err
 	}
-	return &chain, nil
+	return chain, nil
 }
 
 func generateTitle(chain *gomarkov.Chain) string {
