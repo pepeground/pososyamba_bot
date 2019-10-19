@@ -6,4 +6,4 @@
 !.env.sample
 config/config.yml
 main
-model.json
+model/model.json
