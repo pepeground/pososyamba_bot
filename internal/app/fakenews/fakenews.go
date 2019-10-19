@@ -8,7 +8,6 @@ import (
 	"github.com/thesunwave/pososyamba_bot/internal/app/cache"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 )
@@ -21,15 +20,37 @@ type Document struct {
 	Title string `json:title`
 }
 
+func FetchTitle() (string, error) {
+	var err error
+	var result string
+
+	redisObj := cache.Redis().SPop("news_titles")
+
+	log.Print(redisObj.Val())
+
+	if redisObj.Err() != nil {
+		log.Error().Err(redisObj.Err())
+
+		_, err := generateNews()
+
+		if err != nil {
+			log.Error().Err(err)
+		}
+
+		redisObj = cache.Redis().SPop("news_titles")
+	}
+
+	result = strings.Replace(redisObj.Val(), "Голунов", "Говнов", -1)
+
+	return result, err
+}
+
 func generateNews() (*[]string, error) {
 	//Create a chain of order 2
 	chain, err := loadModel()
 
 	var titles *[]string
-
-	if err != nil {
-		chain, titles, err = BuildModel()
-	}
+	chain, titles, err = buildModel(chain)
 
 	var newsList []string
 
@@ -48,15 +69,14 @@ func generateNews() (*[]string, error) {
 	return &newsList, err
 }
 
-func BuildModel() (*gomarkov.Chain, *[]string, error) {
-	chain := gomarkov.NewChain(1)
+func buildModel(chain *gomarkov.Chain) (*gomarkov.Chain, *[]string, error) {
 	titles := fetchTitles()
 	for _, story := range *titles {
 		chain.Add(strings.Split(story, " "))
 	}
 
 	jsonObj, _ := json.Marshal(chain)
-	err := ioutil.WriteFile("model.json", jsonObj, 0644)
+	err := ioutil.WriteFile("model/model.json", jsonObj, 0644)
 
 	if err != nil {
 		log.Error().Err(err)
@@ -69,47 +89,17 @@ func saveToRedis(titles *[]string) error {
 	return cache.Redis().SAdd("news_titles", *titles).Err()
 }
 
-func FetchTitle() (string, error) {
-	var err error
-	var result string
-
-	redisObj := cache.Redis().SPop("news_titles")
-
-	log.Print(redisObj.Val())
-
-	if redisObj.Err() != nil {
-		log.Error().Err(redisObj.Err())
-
-		err = os.Remove("model.json")
-		if err != nil {
-			log.Error().Err(err)
-		}
-
-		_, err := generateNews()
-
-		if err != nil {
-			log.Error().Err(err)
-		}
-
-		redisObj = cache.Redis().SPop("news_titles")
-	}
-
-	result = strings.Replace(redisObj.Val(), "Голунов", "Говнов", -1)
-
-	return result, err
-}
-
 func loadModel() (*gomarkov.Chain, error) {
-	var chain gomarkov.Chain
-	data, err := ioutil.ReadFile("model.json")
+	chain := gomarkov.NewChain(1)
+	data, err := ioutil.ReadFile("model/model.json")
 	if err != nil {
-		return &chain, err
+		return chain, err
 	}
 	err = json.Unmarshal(data, &chain)
 	if err != nil {
-		return &chain, err
+		return chain, err
 	}
-	return &chain, nil
+	return chain, nil
 }
 
 func generateTitle(chain *gomarkov.Chain) string {
