@@ -4,6 +4,7 @@ services:
   bot:
     build:
       context: .
+      dockerfile: Dockerfile.development
     command: /application/main
     depends_on:
       - redis
@@ -20,9 +21,6 @@ services:
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
-
-
-
 
 volumes:
   gopath_cache:
