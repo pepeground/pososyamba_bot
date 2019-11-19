@@ -54,7 +54,7 @@ func generateNews() (*[]string, error) {
 
 	var newsList []string
 
-	for i := 0; i < 5000; i++ {
+	for i := 0; i < 1500; i++ {
 		newsList = append(newsList, generateTitle(chain))
 	}
 
