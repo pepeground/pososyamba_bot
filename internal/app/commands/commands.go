@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
@@ -8,6 +9,7 @@ import (
 	"github.com/thesunwave/pososyamba_bot/internal/app/cache"
 	"github.com/thesunwave/pososyamba_bot/internal/app/fakenews"
 	"github.com/thesunwave/pososyamba_bot/internal/app/string_builder"
+	"io/ioutil"
 	"math/rand"
 	"strconv"
 )
@@ -148,6 +150,44 @@ func (params RequiredParams) HotNews() *[]tgbotapi.MessageConfig {
 	msg.Text = news
 
 	go analytics.SendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "hot_news")
+
+	messages = append(messages, msg)
+
+	return &messages
+}
+
+func (params RequiredParams) F() *[]tgbotapi.AnimationConfig {
+	var messages []tgbotapi.AnimationConfig
+
+	message := params.Update.Message
+
+	fileInfo, err := ioutil.ReadDir("assets/dancers")
+	if err != nil {
+		log.Error().Err(err)
+		return &messages
+	}
+
+	fileName := fileInfo[rand.Intn(len(fileInfo))]
+
+	gif, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", "assets/dancers", fileName.Name()))
+	fmt.Println(err)
+	if err != nil {
+		log.Error().Err(err).Msg("")
+		return &messages
+	}
+
+	fileBytes := tgbotapi.FileBytes{
+		Name:  "F.gif",
+		Bytes: gif,
+	}
+
+	msg := tgbotapi.NewAnimationUpload(message.Chat.ID, fileBytes)
+
+	if message.ReplyToMessage != nil {
+		msg.ReplyToMessageID = message.ReplyToMessage.MessageID
+	}
+
+	go analytics.SendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "F")
 
 	messages = append(messages, msg)
 

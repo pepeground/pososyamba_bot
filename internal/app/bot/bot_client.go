@@ -105,7 +105,8 @@ func inlineQueryHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update, preparedPh
 }
 
 func messageCommandHandler(update *tgbotapi.Update, botClient *BotClient) {
-	var messages *[]tgbotapi.MessageConfig
+	var messages interface{}
+	//var messages *[]tgbotapi.MessageConfig
 
 	handlers := commands.RequiredParams{
 		Update:        update,
@@ -138,17 +139,31 @@ func messageCommandHandler(update *tgbotapi.Update, botClient *BotClient) {
 		messages = adminHandlers.FlushHotNews()
 	case "hot_news":
 		messages = handlers.HotNews()
+	case "f", "F":
+		messages = handlers.F()
 	default:
 		return
 	}
 
-	go botClient.sendMessage(*messages)
+	go botClient.sendMessage(messages)
 }
 
-func (c *BotClient) sendMessage(messages []tgbotapi.MessageConfig) {
-	for _, message := range messages {
-		if _, err := c.Bot.Send(message); err != nil {
-			log.Fatal().Err(err).Msg("Something went wrong")
+func (c *BotClient) sendMessage(messages interface{}) {
+	textMessages, ok := messages.(*[]tgbotapi.MessageConfig)
+	if ok {
+		for _, message := range *textMessages {
+			if _, err := c.Bot.Send(message); err != nil {
+				log.Fatal().Err(err).Msg("Something went wrong")
+			}
+		}
+	}
+
+	pictureMessages, ok := messages.(*[]tgbotapi.AnimationConfig)
+	if ok {
+		for _, message := range *pictureMessages {
+			if _, err := c.Bot.Send(message); err != nil {
+				log.Fatal().Err(err).Msg("Something went wrong")
+			}
 		}
 	}
 }
