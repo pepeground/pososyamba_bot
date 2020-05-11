@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/rs/zerolog/log"
@@ -11,7 +12,10 @@ import (
 	"github.com/thesunwave/pososyamba_bot/internal/app/string_builder"
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"strconv"
+	"strings"
+	"time"
 )
 
 type RequiredParams struct {
@@ -161,23 +165,14 @@ func (params RequiredParams) F() *[]tgbotapi.AnimationConfig {
 
 	message := params.Update.Message
 
-	fileInfo, err := ioutil.ReadDir("assets/dancers")
-	if err != nil {
-		log.Error().Err(err)
-		return &messages
-	}
-
-	fileName := fileInfo[rand.Intn(len(fileInfo))]
-
-	gif, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", "assets/dancers", fileName.Name()))
-	fmt.Println(err)
+	gif, name, err := dancersFile()
 	if err != nil {
 		log.Error().Err(err).Msg("")
 		return &messages
 	}
 
 	fileBytes := tgbotapi.FileBytes{
-		Name:  "F.gif",
+		Name:  name,
 		Bytes: gif,
 	}
 
@@ -192,4 +187,35 @@ func (params RequiredParams) F() *[]tgbotapi.AnimationConfig {
 	messages = append(messages, msg)
 
 	return &messages
+}
+
+func dancersFile() ([]byte, string, error) {
+	fileInfo, err := ioutil.ReadDir("assets/dancers")
+	if err != nil {
+		log.Error().Err(err)
+		return []byte{}, "", err
+	}
+
+	var onlyImages []os.FileInfo
+
+	for _, f := range fileInfo {
+		if strings.Split(f.Name(), ".")[1] == "gif" {
+			onlyImages = append(onlyImages, f)
+		}
+	}
+
+	if len(onlyImages) == 0 {
+		return []byte{}, "", errors.New("no images found")
+	}
+
+	rand.Seed(time.Now().UnixNano())
+	fileName := onlyImages[rand.Intn(len(onlyImages))]
+
+	gif, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", "assets/dancers", fileName.Name()))
+	if err != nil {
+		log.Error().Err(err).Msg("")
+		return []byte{}, "", err
+	}
+
+	return gif, fileName.Name(), nil
 }
