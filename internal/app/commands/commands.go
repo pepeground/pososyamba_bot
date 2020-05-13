@@ -27,8 +27,17 @@ type RequiredParams struct {
 func (params RequiredParams) Start() *[]tgbotapi.MessageConfig {
 	var messages []tgbotapi.MessageConfig
 
-	msg := tgbotapi.NewMessage(params.Update.Message.Chat.ID, "")
-	msg.Text = "Hi there. That bot can make some things, you can get know if you are typing a slash (/)"
+	message := params.Update.Message
+
+	msg := tgbotapi.NewMessage(message.Chat.ID, "")
+	msg.Text = "Hi there. That bot can make some things:\n" +
+		"/pososyamba - send pososyamba\n" +
+		"/f - Press F to pay respect\n" +
+		"/gay_id - Know your gay_id\n" +
+		"/renew_gay_id - Renew your gay_id\n" +
+		"/hot_news - Hot news with Markov's chains and Meduza's headings"
+
+	go analytics.SendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "start")
 
 	messages = append(messages, msg)
 
