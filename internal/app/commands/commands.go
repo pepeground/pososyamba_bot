@@ -10,7 +10,6 @@ import (
 	"github.com/thesunwave/pososyamba_bot/internal/app/cache"
 	"github.com/thesunwave/pososyamba_bot/internal/app/fakenews"
 	"github.com/thesunwave/pososyamba_bot/internal/app/string_builder"
-	"gopkg.in/yaml.v2"
 
 	"io/ioutil"
 	"math/rand"
@@ -38,7 +37,7 @@ func (params RequiredParams) Start() *[]tgbotapi.MessageConfig {
 		"/gay_id - Know your gay_id\n" +
 		"/renew_gay_id - Renew your gay_id\n" +
 		"/hot_news - Hot news with Markov's chains and Meduza's headings\n" +
-		"/mkrschi - send MKRSCHI"
+		"/mrkshi - send MRKSHI"
 
 	go analytics.SendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "start")
 
@@ -232,27 +231,16 @@ func dancersFile() ([]byte, string, error) {
 	return gif, fileName.Name(), nil
 }
 
-func (params RequiredParams) MKRSCHI() *[]tgbotapi.MessageConfig {
+func (params RequiredParams) MRKSHI(mrkshi_phrases *[]string) *[]tgbotapi.MessageConfig {
 		var messages []tgbotapi.MessageConfig
 
 		message := params.Update.Message
 
 		msg := tgbotapi.NewMessage(message.Chat.ID, "")
 
-		file, err := ioutil.ReadFile("configs/mkrschi_phrases.yml")
-		if err != nil {
-			log.Error().Err(err).Msg("")
-		}
-		
-		var mkrschi_phrases []string
-		err = yaml.Unmarshal(file, &mkrschi_phrases)
-		if err != nil {
-			log.Error().Err(err).Msg("")
-		}
+		msg.Text = (*mrkshi_phrases)[rand.Intn(len(*mrkshi_phrases))]
 
-		msg.Text = mkrschi_phrases[rand.Intn(len(mkrschi_phrases))]
-
-		go analytics.SendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "mkrschi")
+		go analytics.SendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "mrkshi")
 
 		messages = append(messages, msg)
 
