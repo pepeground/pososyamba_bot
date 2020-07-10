@@ -11,9 +11,8 @@ import (
 	"github.com/thesunwave/pososyamba_bot/internal/app/commands"
 	"github.com/thesunwave/pososyamba_bot/internal/app/fakenews"
 	"github.com/thesunwave/pososyamba_bot/internal/app/string_builder"
-	"gopkg.in/yaml.v2"
+	"github.com/thesunwave/pososyamba_bot/internal/app/mkrschi"
 	
-	"io/ioutil"
 	"math/rand"
 	"os"
 )
@@ -63,7 +62,7 @@ func (c BotClient) run() {
 		}
 
 		if update.ChannelPost != nil {
-			go updatePhrases(update)
+			go mkrschi.UpdatePhrases(update.ChannelPost.Text)
 			continue
 		}
 
@@ -175,32 +174,4 @@ func (c *BotClient) sendMessage(messages interface{}) {
 			}
 		}
 	}
-}
-
-func updatePhrases(update tgbotapi.Update) {
-
-	file, err := ioutil.ReadFile("configs/mkrschi_phrases.yml")
-	if err != nil {
-		log.Error().Err(err).Msg("")
-	}
-	var mkrschi_phrases []string
-	err = yaml.Unmarshal(file, &mkrschi_phrases)
-	if err != nil {
-		log.Error().Err(err).Msg("")
-	}
-
-	mkrschi_phrases = append(mkrschi_phrases, update.ChannelPost.Text)
-
-	var bytes []byte
-
-	bytes, err = yaml.Marshal(mkrschi_phrases)
-	if err != nil {
-		log.Error().Err(err).Msg("")
-	}
-	err = ioutil.WriteFile("configs/mkrschi_phrases.yml", bytes, 0644)
-	if err != nil {
-		log.Error().Err(err).Msg("")
-	}
-
-
 }
