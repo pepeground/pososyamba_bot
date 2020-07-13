@@ -10,6 +10,7 @@ import (
 	"github.com/thesunwave/pososyamba_bot/internal/app/cache"
 	"github.com/thesunwave/pososyamba_bot/internal/app/fakenews"
 	"github.com/thesunwave/pososyamba_bot/internal/app/string_builder"
+
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -35,7 +36,8 @@ func (params RequiredParams) Start() *[]tgbotapi.MessageConfig {
 		"/f - Press F to pay respect\n" +
 		"/gay_id - Know your gay_id\n" +
 		"/renew_gay_id - Renew your gay_id\n" +
-		"/hot_news - Hot news with Markov's chains and Meduza's headings"
+		"/hot_news - Hot news with Markov's chains and Meduza's headings\n" +
+		"/mrkshi - send MRKSHI"
 
 	go analytics.SendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "start")
 
@@ -227,4 +229,20 @@ func dancersFile() ([]byte, string, error) {
 	}
 
 	return gif, fileName.Name(), nil
+}
+
+func (params RequiredParams) MRKSHI(mrkshi_phrases *[]string) *[]tgbotapi.MessageConfig {
+		var messages []tgbotapi.MessageConfig
+
+		message := params.Update.Message
+
+		msg := tgbotapi.NewMessage(message.Chat.ID, "")
+
+		msg.Text = (*mrkshi_phrases)[rand.Intn(len(*mrkshi_phrases))]
+
+		go analytics.SendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "mrkshi")
+
+		messages = append(messages, msg)
+
+		return &messages
 }
