@@ -5,9 +5,12 @@ WORKDIR /application
 RUN apk update && apk upgrade && \
     apk add bash git openssh
 
-COPY . ./
+COPY go.mod .
+COPY go.sum .
 
 RUN go mod download
+
+COPY . .
 
 RUN go build ./cmd/pososyamba_bot/main.go
 
