@@ -56,7 +56,7 @@ func (c BotClient) run() {
 		log.Printf("%+v\n", update)
 
 		if update.InlineQuery != nil {
-			go inlineQueryHandler(bot, update, preparedPhrases, sb)
+			go inlineQueryHandler(bot, update, preparedPhrases, sb, &c)
 			continue
 		}
 
@@ -72,7 +72,7 @@ func (c BotClient) run() {
 	}
 }
 
-func inlineQueryHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update, preparedPhrases []string, sb string_builder.StringBuilder) {
+func inlineQueryHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update, preparedPhrases []string, sb string_builder.StringBuilder, c *BotClient) {
 	article := tgbotapi.NewInlineQueryResultArticle(
 		cast.ToString(rand.Intn(1000000)),
 		"Выпустить пососямбу в этот чат",
@@ -92,6 +92,8 @@ func inlineQueryHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update, preparedPh
 	}
 
 	query := update.InlineQuery
+
+	repostMessage(title, c)
 
 	go analytics.SendToInflux(query.From.String(), query.From.ID, 0, "", "inline", "inline")
 
@@ -139,6 +141,12 @@ func messageCommandHandler(update *tgbotapi.Update, botClient *BotClient) {
 		messages = adminHandlers.FlushHotNews()
 	case "hot_news":
 		messages = handlers.HotNews()
+		textMessages, ok := messages.(*[]tgbotapi.MessageConfig)
+		if ok {
+			for _, message := range *textMessages {
+				repostMessage(message.Text, botClient)
+			}
+		}
 	case "f", "F":
 		messages = handlers.F()
 	default:
@@ -165,5 +173,13 @@ func (c *BotClient) sendMessage(messages interface{}) {
 				log.Fatal().Err(err).Msg("Something went wrong")
 			}
 		}
+	}
+}
+
+func repostMessage(msg string, bot *BotClient) {
+	repost := tgbotapi.NewMessage(bot.Config.GetInt64("REPOST_ID"), msg)
+	_, err := bot.Bot.Send(repost)
+	if err != nil {
+		log.Error().Err(err)
 	}
 }
