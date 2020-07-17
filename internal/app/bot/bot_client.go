@@ -11,10 +11,15 @@ import (
 	"github.com/thesunwave/pososyamba_bot/internal/app/commands"
 	"github.com/thesunwave/pososyamba_bot/internal/app/fakenews"
 	"github.com/thesunwave/pososyamba_bot/internal/app/string_builder"
-
+	"github.com/thesunwave/pososyamba_bot/internal/app/mrkshi"
+	"gopkg.in/yaml.v2"
+	
+	"io/ioutil"
 	"math/rand"
 	"os"
 )
+
+var mrkshi_phrases []string
 
 type BotClient struct {
 	Config *viper.Viper
@@ -33,6 +38,16 @@ func Init() {
 	botClient := BotClient{
 		Config: configs.GetConfig(),
 		Bot:    bot,
+	}
+
+	file, err := ioutil.ReadFile("configs/mrkshi_phrases.yml")
+	if err != nil {
+		log.Error().Err(err).Msg("")
+	}
+	
+	err = yaml.Unmarshal(file, &mrkshi_phrases)
+	if err != nil {
+		log.Error().Err(err).Msg("")
 	}
 
 	botClient.run()
@@ -58,6 +73,19 @@ func (c BotClient) run() {
 		if update.InlineQuery != nil {
 			go inlineQueryHandler(bot, update, preparedPhrases, sb, &c)
 			continue
+		}
+
+		if update.ChannelPost != nil {
+			if update.ChannelPost.Text != "" { // if channel post is a plain text
+				go mrkshi.UpdatePhrases(update.ChannelPost.Text, &mrkshi_phrases)			
+				continue
+			}
+
+			if update.ChannelPost.Caption != "" { // if channel post is a photo with caption
+				go mrkshi.UpdatePhrases(update.ChannelPost.Caption, &mrkshi_phrases)
+				continue
+			}	
+
 		}
 
 		if update.Message == nil { // ignore any non-Message updates
@@ -149,6 +177,8 @@ func messageCommandHandler(update *tgbotapi.Update, botClient *BotClient) {
 		}
 	case "f", "F":
 		messages = handlers.F()
+	case "MRKSHI", "mrkshi":
+		messages = handlers.MRKSHI(&mrkshi_phrases)
 	default:
 		return
 	}
