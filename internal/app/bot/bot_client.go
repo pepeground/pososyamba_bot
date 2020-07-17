@@ -206,9 +206,9 @@ func (c *BotClient) sendMessage(messages interface{}) {
 	}
 }
 
-func repostMessage(msg string, bot *BotClient) {
-	repost := tgbotapi.NewMessage(bot.Config.GetInt64("REPOST_ID"), msg)
-	_, err := bot.Bot.Send(repost)
+func repostMessage(msg string, c *BotClient) {
+	repost := tgbotapi.NewMessage(c.Config.GetInt64("REPOST_ID"), msg)
+	_, err := c.Bot.Send(repost)
 	if err != nil {
 		log.Error().Err(err)
 	}
