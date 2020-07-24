@@ -71,8 +71,26 @@ func (c BotClient) run() {
 		log.Printf("%+v\n", update)
 
 		if update.InlineQuery != nil {
-			go inlineQueryHandler(bot, update, preparedPhrases, sb)
+			go inlineQueryHandler(bot, update, preparedPhrases, sb, &c)
 			continue
+		}
+
+		if update.CallbackQuery != nil {
+			if update.CallbackQuery.Data == "repost" {
+				if update.CallbackQuery.Message != nil {
+					repostMessage(update.CallbackQuery.Message.Text, &c)
+				}
+				bot.AnswerCallbackQuery(tgbotapi.NewCallback(update.CallbackQuery.ID, "Reposted"))
+
+				keyboard := tgbotapi.InlineKeyboardMarkup{}
+				var row []tgbotapi.InlineKeyboardButton
+				btn := tgbotapi.NewInlineKeyboardButtonURL("Go to mezuda", "https://t.me/mezuda")
+				row = append(row, btn)
+				keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
+	            msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, update.CallbackQuery.Message.Text)
+	            msg.ReplyMarkup = &keyboard
+	            bot.Send(msg)
+	        }
 		}
 
 		if update.ChannelPost != nil {
@@ -100,7 +118,7 @@ func (c BotClient) run() {
 	}
 }
 
-func inlineQueryHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update, preparedPhrases []string, sb string_builder.StringBuilder) {
+func inlineQueryHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update, preparedPhrases []string, sb string_builder.StringBuilder, c *BotClient) {
 	article := tgbotapi.NewInlineQueryResultArticle(
 		cast.ToString(rand.Intn(1000000)),
 		"Выпустить пососямбу в этот чат",
@@ -195,5 +213,13 @@ func (c *BotClient) sendMessage(messages interface{}) {
 				log.Fatal().Err(err).Msg("Something went wrong")
 			}
 		}
+	}
+}
+
+func repostMessage(msg string, c *BotClient) {
+	repost := tgbotapi.NewMessage(c.Config.GetInt64("REPOST_ID"), msg)
+	_, err := c.Bot.Send(repost)
+	if err != nil {
+		log.Error().Err(err)
 	}
 }

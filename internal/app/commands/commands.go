@@ -162,6 +162,14 @@ func (params RequiredParams) HotNews() *[]tgbotapi.MessageConfig {
 	}
 
 	msg := tgbotapi.NewMessage(message.Chat.ID, "")
+
+	keyboard := tgbotapi.InlineKeyboardMarkup{}
+	var row []tgbotapi.InlineKeyboardButton
+	btn := tgbotapi.NewInlineKeyboardButtonData("Repost to mezuda", "repost")
+	row = append(row, btn)
+	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
+	msg.ReplyMarkup = keyboard
+
 	msg.Text = news
 
 	go analytics.SendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "hot_news")
