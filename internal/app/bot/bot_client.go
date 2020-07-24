@@ -71,7 +71,7 @@ func (c BotClient) run() {
 		log.Printf("%+v\n", update)
 
 		if update.InlineQuery != nil {
-			go inlineQueryHandler(bot, update, preparedPhrases, sb)
+		go inlineQueryHandler(bot, update, preparedPhrases, sb, &c)
 			continue
 		}
 
@@ -100,7 +100,9 @@ func (c BotClient) run() {
 	}
 }
 
-func inlineQueryHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update, preparedPhrases []string, sb string_builder.StringBuilder) {
+func inlineQueryHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update, preparedPhrases []string, sb string_builder.StringBuilder, c *BotClient) {
+	gif_ids := sb.Config.GetStringSlice("F_GIFS")
+
 	article := tgbotapi.NewInlineQueryResultArticle(
 		cast.ToString(rand.Intn(1000000)),
 		"Выпустить пососямбу в этот чат",
@@ -114,9 +116,15 @@ func inlineQueryHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update, preparedPh
 		title,
 	)
 
+	gif := tgbotapi.NewInlineQueryResultCachedDocument(
+		cast.ToString(rand.Intn(1000000)),
+		gif_ids[rand.Intn(len(gif_ids))],
+		"Press F to pay respect",
+	)
+
 	inlineConf := tgbotapi.InlineConfig{
 		InlineQueryID: update.InlineQuery.ID,
-		Results:       []interface{}{article, fakeNews},
+		Results:       []interface{}{article, fakeNews, gif},
 	}
 
 	query := update.InlineQuery
