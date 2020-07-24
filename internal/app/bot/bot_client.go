@@ -75,6 +75,24 @@ func (c BotClient) run() {
 			continue
 		}
 
+		if update.CallbackQuery != nil {
+			if update.CallbackQuery.Data == "repost" {
+				if update.CallbackQuery.Message != nil {
+					repostMessage(update.CallbackQuery.Message.Text, &c)
+				}
+				bot.AnswerCallbackQuery(tgbotapi.NewCallback(update.CallbackQuery.ID, "Reposted"))
+
+				keyboard := tgbotapi.InlineKeyboardMarkup{}
+				var row []tgbotapi.InlineKeyboardButton
+				btn := tgbotapi.NewInlineKeyboardButtonURL("Go to mezuda", "https://t.me/mezuda")
+				row = append(row, btn)
+				keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
+	            msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, update.CallbackQuery.Message.Text)
+	            msg.ReplyMarkup = &keyboard
+	            bot.Send(msg)
+	        }
+		}
+
 		if update.ChannelPost != nil {
 			if update.ChannelPost.Text != "" { // if channel post is a plain text
 				go mrkshi.UpdatePhrases(update.ChannelPost.Text, &mrkshi_phrases)			
@@ -120,8 +138,6 @@ func inlineQueryHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update, preparedPh
 	}
 
 	query := update.InlineQuery
-
-	repostMessage(title, c)
 
 	go analytics.SendToInflux(query.From.String(), query.From.ID, 0, "", "inline", "inline")
 
@@ -169,12 +185,6 @@ func messageCommandHandler(update *tgbotapi.Update, botClient *BotClient) {
 		messages = adminHandlers.FlushHotNews()
 	case "hot_news":
 		messages = handlers.HotNews()
-		textMessages, ok := messages.(*[]tgbotapi.MessageConfig)
-		if ok {
-			for _, message := range *textMessages {
-				repostMessage(message.Text, botClient)
-			}
-		}
 	case "f", "F":
 		messages = handlers.F()
 	case "MRKSHI", "mrkshi":
