@@ -19,6 +19,8 @@ import (
 	"time"
 )
 
+var top_phrase = "Однажды один очень мудрый человек сказал: ты пидор. Помню на одного наткнулись в музее компьютерных игр, работает там."
+
 type RequiredParams struct {
 	Update        *tgbotapi.Update
 	StringBuilder *string_builder.StringBuilder
@@ -238,11 +240,22 @@ func (params RequiredParams) MRKSHI(mrkshi_phrases *[]string) *[]tgbotapi.Messag
 
 		msg := tgbotapi.NewMessage(message.Chat.ID, "")
 
-		msg.Text = (*mrkshi_phrases)[rand.Intn(len(*mrkshi_phrases))]
+		if random() {
+			msg.Text = top_phrase
+		} else {
+			msg.Text = (*mrkshi_phrases)[rand.Intn(len(*mrkshi_phrases))]
+		}
 
 		go analytics.SendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "mrkshi")
 
 		messages = append(messages, msg)
 
 		return &messages
+}
+
+func random() bool{
+	a := []int{1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2} // 3/20 = 15% odd
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(a), func(i, j int) { a[i], a[j] = a[j], a[i] })
+	return a[0] & 1 == 1
 }
