@@ -1,3 +1,6 @@
+run_development:
+	docker-compose run --rm bot bash
+
 build: Dockerfile
 	docker build --rm -f "Dockerfile" -t thesunwave/pososyamba:latest .
 
