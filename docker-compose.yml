@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.development
-    command: sh -c "go build /application/cmd/pososyamba_bot/main.go && /application/main"
+    command: /application/main
     depends_on:
       - redis
     env_file:

@@ -11,7 +11,3 @@ COPY go.sum .
 RUN go mod download
 
 COPY . .
-
-RUN go build ./cmd/pososyamba_bot/main.go
-
-CMD [ "./main" ]
