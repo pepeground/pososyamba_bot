@@ -1,19 +1,23 @@
-DOCKER_COMPOSE_RUN=docker-compose run bot
+UID=$(shell id -u)
+USRENAME=`id -un`
+USER_PARAM=--user $(shell id -u):$(shell id -g)
+APP_VOLUME_PARAM=-v `pwd`/.:/application
+APP_PORT_PARAM=-p 80:3000/tcp
+CONTAINER_NAME=thesunwave/pososyamba:latest
+DOCKER_RUN=docker run -it ${USER_PARAM} ${APP_VOLUME_PARAM} ${APP_PORT_PARAM} ${CONTAINER_NAME}
+DOCKER_COMPOSE_RUN=docker-compose run  ${USER_PARAM}  bot
 
-build_image: Dockerfile
+build_prod: Dockerfile
 	docker build --rm -f "Dockerfile" -t thesunwave/pososyamba:latest .
 
-run: build_image
-	docker run --env-file .env.development pososyamba:latest
+run_prod: build_image
+	${DOCKER_RUN}--env-file .env.development
 
 clean:
 	rm -f ./main
 
-build_container:
-	docker-compose build
-
-build_devel: build_container
-	${DOCKER_COMPOSE_RUN} "go build /application/cmd/pososyamba_bot/main.go"
+build_devel: clean
+	${DOCKER_COMPOSE_RUN} /bin/sh -c "go build -work /application/cmd/pososyamba_bot/main.go"
 	chmod a+x ./main
 
 up: build_devel

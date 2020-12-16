@@ -1,5 +1,8 @@
 FROM golang:1.13-alpine AS pososyamba
 
+ENV GOPATH /application/vendor
+ENV HOME /application
+
 WORKDIR /application
 
 RUN apk update && apk upgrade && \
