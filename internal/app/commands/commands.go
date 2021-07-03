@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/rs/zerolog/log"
@@ -9,14 +8,12 @@ import (
 	"github.com/thesunwave/pososyamba_bot/internal/app/analytics"
 	"github.com/thesunwave/pososyamba_bot/internal/app/cache"
 	"github.com/thesunwave/pososyamba_bot/internal/app/fakenews"
+	"github.com/thesunwave/pososyamba_bot/internal/app/funerals"
 	"github.com/thesunwave/pososyamba_bot/internal/app/string_builder"
 
 	"io/ioutil"
 	"math/rand"
-	"os"
 	"strconv"
-	"strings"
-	"time"
 )
 
 type RequiredParams struct {
@@ -184,7 +181,7 @@ func (params RequiredParams) F() *[]tgbotapi.AnimationConfig {
 
 	message := params.Update.Message
 
-	gif, name, err := dancersFile()
+	gif, name, err := funerals.DancersFile()
 	if err != nil {
 		log.Error().Err(err).Msg("")
 		return &messages
@@ -208,49 +205,56 @@ func (params RequiredParams) F() *[]tgbotapi.AnimationConfig {
 	return &messages
 }
 
-func dancersFile() ([]byte, string, error) {
-	fileInfo, err := ioutil.ReadDir("assets/dancers")
-	if err != nil {
-		log.Error().Err(err)
-		return []byte{}, "", err
-	}
+func (params RequiredParams) MRKSHI(mrkshi_phrases *[]string) *[]tgbotapi.MessageConfig {
+	var messages []tgbotapi.MessageConfig
 
-	var onlyImages []os.FileInfo
+	message := params.Update.Message
 
-	for _, f := range fileInfo {
-		if strings.Split(f.Name(), ".")[1] == "gif" {
-			onlyImages = append(onlyImages, f)
-		}
-	}
+	msg := tgbotapi.NewMessage(message.Chat.ID, "")
 
-	if len(onlyImages) == 0 {
-		return []byte{}, "", errors.New("no images found")
-	}
+	msg.Text = (*mrkshi_phrases)[rand.Intn(len(*mrkshi_phrases))]
 
-	rand.Seed(time.Now().UnixNano())
-	fileName := onlyImages[rand.Intn(len(onlyImages))]
+	go analytics.SendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "mrkshi")
 
-	gif, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", "assets/dancers", fileName.Name()))
-	if err != nil {
-		log.Error().Err(err).Msg("")
-		return []byte{}, "", err
-	}
+	messages = append(messages, msg)
 
-	return gif, fileName.Name(), nil
+	return &messages
 }
 
-func (params RequiredParams) MRKSHI(mrkshi_phrases *[]string) *[]tgbotapi.MessageConfig {
-		var messages []tgbotapi.MessageConfig
+func (params RequiredParams) NewF() *[]tgbotapi.VideoNoteConfig {
+	var messages []tgbotapi.VideoNoteConfig
+	var msg tgbotapi.VideoNoteConfig
 
-		message := params.Update.Message
+	message := params.Update.Message
 
-		msg := tgbotapi.NewMessage(message.Chat.ID, "")
+	gif, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", "assets/dancers", "funeral.mp4"))
 
-		msg.Text = (*mrkshi_phrases)[rand.Intn(len(*mrkshi_phrases))]
-
-		go analytics.SendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "mrkshi")
-
-		messages = append(messages, msg)
-
+	if err != nil {
+		log.Error().Err(err).Msg("")
 		return &messages
+	}
+
+	fileBytes := tgbotapi.FileBytes{
+		Name:  "funeral.mp4",
+		Bytes: gif,
+	}
+
+	redisObj := cache.Redis().Get("funeral_video_id")
+	fileID, err := redisObj.Result()
+
+	if err != nil || fileID == "" {
+		msg = tgbotapi.NewVideoNoteUpload(message.Chat.ID, 360, fileBytes)
+	} else {
+		msg = tgbotapi.NewVideoNoteShare(message.Chat.ID, 360, fileID)
+	}
+
+	if message.ReplyToMessage != nil {
+		msg.ReplyToMessageID = message.ReplyToMessage.MessageID
+	}
+
+	go analytics.SendToInflux(message.From.String(), message.From.ID, message.Chat.ID, message.Chat.Title, "message", "F")
+
+	messages = append(messages, msg)
+
+	return &messages
 }

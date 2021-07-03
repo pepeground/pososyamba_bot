@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.development
-    command: /application/main
+    command: sh -c "go build /application/cmd/pososyamba_bot/main.go && /application/main"
     depends_on:
       - redis
     env_file:
@@ -13,7 +13,7 @@ services:
     tty: true
     stdin_open: true
     volumes:
-      - gopath_cache:$GOPATH
+      - gopath_cache:/go/pkg/mod
       - .:/application:cached
 
   redis:

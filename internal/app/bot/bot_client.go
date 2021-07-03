@@ -8,12 +8,15 @@ import (
 	"github.com/thesunwave/pososyamba_bot/configs"
 	"github.com/thesunwave/pososyamba_bot/internal/app/admin"
 	"github.com/thesunwave/pososyamba_bot/internal/app/analytics"
+	"github.com/thesunwave/pososyamba_bot/internal/app/cache"
 	"github.com/thesunwave/pososyamba_bot/internal/app/commands"
+	"github.com/thesunwave/pososyamba_bot/internal/app/external/tenor"
 	"github.com/thesunwave/pososyamba_bot/internal/app/fakenews"
-	"github.com/thesunwave/pososyamba_bot/internal/app/string_builder"
 	"github.com/thesunwave/pososyamba_bot/internal/app/mrkshi"
+	"github.com/thesunwave/pososyamba_bot/internal/app/string_builder"
 	"gopkg.in/yaml.v2"
-	
+	"time"
+
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -44,7 +47,7 @@ func Init() {
 	if err != nil {
 		log.Error().Err(err).Msg("")
 	}
-	
+
 	err = yaml.Unmarshal(file, &mrkshi_phrases)
 	if err != nil {
 		log.Error().Err(err).Msg("")
@@ -95,14 +98,14 @@ func (c BotClient) run() {
 
 		if update.ChannelPost != nil {
 			if update.ChannelPost.Text != "" { // if channel post is a plain text
-				go mrkshi.UpdatePhrases(update.ChannelPost.Text, &mrkshi_phrases)			
+				go mrkshi.UpdatePhrases(update.ChannelPost.Text, &mrkshi_phrases)
 				continue
 			}
 
 			if update.ChannelPost.Caption != "" { // if channel post is a photo with caption
 				go mrkshi.UpdatePhrases(update.ChannelPost.Caption, &mrkshi_phrases)
 				continue
-			}	
+			}
 
 		}
 
@@ -132,16 +135,22 @@ func inlineQueryHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update, preparedPh
 		title,
 	)
 
+	url, err := tenor.GetGifsByIDs(os.Getenv("FUNERAL_GIFS_IDS"))
+	if err != nil {
+		log.Error().Err(err).Msg("")
+	}
+	gif := tgbotapi.NewInlineQueryResultGIF(os.Getenv("FUNERAL_GIFS_IDS"), url)
+
 	inlineConf := tgbotapi.InlineConfig{
 		InlineQueryID: update.InlineQuery.ID,
-		Results:       []interface{}{article, fakeNews},
+		Results:       []interface{}{article, fakeNews, gif},
 	}
 
 	query := update.InlineQuery
 
 	go analytics.SendToInflux(query.From.String(), query.From.ID, 0, "", "inline", "inline")
 
-	_, err := bot.AnswerInlineQuery(inlineConf)
+	_, err = bot.AnswerInlineQuery(inlineConf)
 
 	log.Info().Interface("update", update)
 
@@ -185,8 +194,10 @@ func messageCommandHandler(update *tgbotapi.Update, botClient *BotClient) {
 		messages = adminHandlers.FlushHotNews()
 	case "hot_news":
 		messages = handlers.HotNews()
-	case "f", "F":
+	case "f":
 		messages = handlers.F()
+	case "F":
+		messages = handlers.NewF()
 	case "MRKSHI", "mrkshi":
 		messages = handlers.MRKSHI(&mrkshi_phrases)
 	default:
@@ -212,6 +223,18 @@ func (c *BotClient) sendMessage(messages interface{}) {
 			if _, err := c.Bot.Send(message); err != nil {
 				log.Fatal().Err(err).Msg("Something went wrong")
 			}
+		}
+	}
+
+	videoNoteMessages, ok := messages.(*[]tgbotapi.VideoNoteConfig)
+	if ok {
+		for _, message := range *videoNoteMessages {
+			msg, err := c.Bot.Send(message)
+
+			if err != nil {
+				log.Fatal().Err(err).Msg("Something went wrong")
+			}
+			cache.Redis().Set("funeral_video_id", msg.VideoNote.FileID, 100*time.Hour)
 		}
 	}
 }
