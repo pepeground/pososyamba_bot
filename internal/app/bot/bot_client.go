@@ -10,6 +10,7 @@ import (
 	"github.com/thesunwave/pososyamba_bot/internal/app/analytics"
 	"github.com/thesunwave/pososyamba_bot/internal/app/cache"
 	"github.com/thesunwave/pososyamba_bot/internal/app/commands"
+	"github.com/thesunwave/pososyamba_bot/internal/app/external/tenor"
 	"github.com/thesunwave/pososyamba_bot/internal/app/fakenews"
 	"github.com/thesunwave/pososyamba_bot/internal/app/mrkshi"
 	"github.com/thesunwave/pososyamba_bot/internal/app/string_builder"
@@ -116,16 +117,22 @@ func inlineQueryHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update, preparedPh
 		title,
 	)
 
+	url, err := tenor.GetGifsByIDs(os.Getenv("FUNERAL_GIFS_IDS"))
+	if err != nil {
+		log.Error().Err(err).Msg("")
+	}
+	gif := tgbotapi.NewInlineQueryResultGIF(os.Getenv("FUNERAL_GIFS_IDS"), url)
+
 	inlineConf := tgbotapi.InlineConfig{
 		InlineQueryID: update.InlineQuery.ID,
-		Results:       []interface{}{article, fakeNews},
+		Results:       []interface{}{article, fakeNews, gif},
 	}
 
 	query := update.InlineQuery
 
 	go analytics.SendToInflux(query.From.String(), query.From.ID, 0, "", "inline", "inline")
 
-	_, err := bot.AnswerInlineQuery(inlineConf)
+	_, err = bot.AnswerInlineQuery(inlineConf)
 
 	log.Info().Interface("update", update)
 
