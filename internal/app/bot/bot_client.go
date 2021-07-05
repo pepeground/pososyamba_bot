@@ -3,22 +3,18 @@ package bot_client
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/rs/zerolog/log"
-	"github.com/spf13/cast"
 	"github.com/spf13/viper"
 	"github.com/thesunwave/pososyamba_bot/configs"
 	"github.com/thesunwave/pososyamba_bot/internal/app/admin"
 	"github.com/thesunwave/pososyamba_bot/internal/app/analytics"
 	"github.com/thesunwave/pososyamba_bot/internal/app/cache"
 	"github.com/thesunwave/pososyamba_bot/internal/app/commands"
-	"github.com/thesunwave/pososyamba_bot/internal/app/external/tenor"
-	"github.com/thesunwave/pososyamba_bot/internal/app/fakenews"
 	"github.com/thesunwave/pososyamba_bot/internal/app/mrkshi"
 	"github.com/thesunwave/pososyamba_bot/internal/app/string_builder"
 	"gopkg.in/yaml.v2"
 	"time"
 
 	"io/ioutil"
-	"math/rand"
 	"os"
 )
 
@@ -74,26 +70,8 @@ func (c BotClient) run() {
 		log.Printf("%+v\n", update)
 
 		if update.InlineQuery != nil {
-			go inlineQueryHandler(bot, update, preparedPhrases, sb, &c)
+			go inlineQueryHandler(bot, update, preparedPhrases, sb)
 			continue
-		}
-
-		if update.CallbackQuery != nil {
-			if update.CallbackQuery.Data == "repost" {
-				if update.CallbackQuery.Message != nil {
-					repostMessage(update.CallbackQuery.Message.Text, &c)
-				}
-				bot.AnswerCallbackQuery(tgbotapi.NewCallback(update.CallbackQuery.ID, "Reposted"))
-
-				keyboard := tgbotapi.InlineKeyboardMarkup{}
-				var row []tgbotapi.InlineKeyboardButton
-				btn := tgbotapi.NewInlineKeyboardButtonURL("Go to mezuda", "https://t.me/mezuda")
-				row = append(row, btn)
-				keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
-	            msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, update.CallbackQuery.Message.Text)
-	            msg.ReplyMarkup = &keyboard
-	            bot.Send(msg)
-	        }
 		}
 
 		if update.ChannelPost != nil {
@@ -121,26 +99,15 @@ func (c BotClient) run() {
 	}
 }
 
-func inlineQueryHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update, preparedPhrases []string, sb string_builder.StringBuilder, c *BotClient) {
-	article := tgbotapi.NewInlineQueryResultArticle(
-		cast.ToString(rand.Intn(1000000)),
-		"Выпустить пососямбу в этот чат",
-		preparedPhrases[rand.Intn(len(preparedPhrases))]+"\r\n\n"+sb.BuildPososyamba(),
-	)
+func inlineQueryHandler(bot *tgbotapi.BotAPI, update tgbotapi.Update, preparedPhrases []string, sb string_builder.StringBuilder) {
+	article := commands.InlinePososyamba(preparedPhrases, sb)
 
-	title, _ := fakenews.FetchTitle()
-	fakeNews := tgbotapi.NewInlineQueryResultArticle(
-		cast.ToString(rand.Intn(1000000)),
-		"Сгенерить фейкньюс",
-		title,
-	)
+	fakeNews := commands.InlineFakeNews()
 
-	url, err := tenor.GetGifsByIDs(os.Getenv("FUNERAL_GIFS_IDS"))
+	gif, err := commands.InlineF()
 	if err != nil {
 		log.Error().Err(err).Msg("")
 	}
-	gif := tgbotapi.NewInlineQueryResultGIF(os.Getenv("FUNERAL_GIFS_IDS"), url)
-
 	inlineConf := tgbotapi.InlineConfig{
 		InlineQueryID: update.InlineQuery.ID,
 		Results:       []interface{}{article, fakeNews, gif},
@@ -236,13 +203,5 @@ func (c *BotClient) sendMessage(messages interface{}) {
 			}
 			cache.Redis().Set("funeral_video_id", msg.VideoNote.FileID, 100*time.Hour)
 		}
-	}
-}
-
-func repostMessage(msg string, c *BotClient) {
-	repost := tgbotapi.NewMessage(c.Config.GetInt64("REPOST_ID"), msg)
-	_, err := c.Bot.Send(repost)
-	if err != nil {
-		log.Error().Err(err)
 	}
 }
