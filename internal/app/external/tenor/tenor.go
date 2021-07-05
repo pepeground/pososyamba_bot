@@ -8,10 +8,10 @@ import (
 	"os"
 )
 
-func GetGifsByIDs(query string) (string, error) {
+func GetGifsByIDs(query string) (string, string, error) {
 	u, err := url.Parse("https://g.tenor.com/v1/gifs")
 	if err != nil {
-		return "", err
+		return "", "", nil
 	}
 
 	q := u.Query()
@@ -22,22 +22,23 @@ func GetGifsByIDs(query string) (string, error) {
 
 	resp, err := http.Get(u.String())
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	defer resp.Body.Close()
 
 	jsonDataFromHttp, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	var response Response
 	err = json.Unmarshal(jsonDataFromHttp, &response)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	media := response.Results[0].Media
-	return media[0].Gif.Url, nil
+	media := response.Results[0].Media[0]
+
+	return media.Gif.Url, media.Gif.Preview, nil
 }
