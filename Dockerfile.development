@@ -1,5 +1,8 @@
 FROM golang:1.13-alpine AS pososyamba
 
+ENV GOPATH /application/vendor
+ENV HOME /application
+
 WORKDIR /application
 
 RUN apk update && apk upgrade && \
@@ -11,7 +14,3 @@ COPY go.sum .
 RUN go mod download
 
 COPY . .
-
-RUN go build ./cmd/pososyamba_bot/main.go
-
-CMD [ "./main" ]
